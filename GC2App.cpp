@@ -7,12 +7,13 @@
 //#include <bits/fcntl-linux.h>
 #include <fcntl.h>
 #include<queue>
+#include<string>
 #include "GC2App.h"
 #include "requestData.h"
 #include "epoll.h"
 
-const int THREADPOOL_THREAD_NUM = 4;
-const int QUEUE_SIZE = 0;
+const int THREADPOOL_THREAD_NUM = 8;
+const int QUEUE_SIZE = 65535;
 const int TIMER_TIME_OUT = 500;
 extern struct epoll_event* events;
 std::priority_queue<mytimer*, std::deque<mytimer*>, timerCmp> my_timer_queue;
@@ -99,14 +100,15 @@ void GC2App::handle_events(int epoll_fd, int listen_fd, struct epoll_event *even
         requestData* request = (requestData*)(events[i].data.ptr);
         std::cout << "passed request data creation" << std::endl;
         int fd = request->getFd();
+        //int fd = events[i].data.fd;
         if(fd == listen_fd)
         {
             std::cout << "connection acceptance request" << std::endl;
-            this->accept_connection(this->_listen_fd, this->_epoll_fd);
+            this->accept_connection(listen_fd, epoll_fd);
         }
         else
         {
-            std::cout << "error event" << std::endl;
+            std::cout << "different event" << std::endl;
             if ((events[i].events & EPOLLERR) || (events[i].events & EPOLLHUP)
                 || (!(events[i].events & EPOLLIN)))
             {
@@ -115,6 +117,7 @@ void GC2App::handle_events(int epoll_fd, int listen_fd, struct epoll_event *even
             }
             request->seperateTimer();
             int rc = threadpool_add(tp, my_handler, events[i].data.ptr, 0);
+            //std::cout<< "output value of rc is: " + rc << std::endl;
         }
     }
 }
@@ -138,6 +141,7 @@ void GC2App::accept_connection(int listen_fd, int epoll_fd) {
         __uint32_t _epo_event = EPOLLIN | EPOLLET | EPOLLONESHOT;
         epoll_add(epoll_fd, accept_fd, static_cast<void*>(req_info), _epo_event);
         mytimer *mtimer = new mytimer(req_info, TIMER_TIME_OUT);
+        std::cout << "Set separate timer for new event" << std::endl;
         req_info->addTimer(mtimer);
         MutexLockGuard();
         my_timer_queue.push(mtimer);
@@ -145,7 +149,7 @@ void GC2App::accept_connection(int listen_fd, int epoll_fd) {
 }
 
 void GC2App::my_handler(void *args) {
-    std::cout << "I am inside request data's my handler" << std::endl;
+    //std::cout << "I am inside request data's my handler" << std::endl;
     requestData *req_data =  (requestData*) args;
     req_data->handleRequest();
 }
@@ -179,7 +183,8 @@ void GC2App::server_run() {
         int events_num = my_epoll_wait(this->_epoll_fd, events, MAXEVENTS, -1);
         if (events_num == 0)
             continue;
-        printf("%d\n", events_num);
+        //printf("%d\n", events_num);
+        std::cout << "number of events are " << events_num << std::endl;
         this->handle_events(this->_epoll_fd, this->_listen_fd, events, events_num, this->threadpool);
 
     }

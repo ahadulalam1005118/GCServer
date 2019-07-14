@@ -41,13 +41,16 @@ requestData::requestData(int _epollfd, int _fd):
     timer(NULL),
     fd(_fd), 
     epollfd(_epollfd)
-{}
+{
+    std::cout << "I am Inside this epoll event" << std::endl;
+}
 
 requestData::~requestData()
 {
     cout << "~requestData()" << endl;
     struct epoll_event ev;
-    ev.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
+    //ev.events = EPOLLIN | EPOLLET | EPOLLONESHOT;
+    ev.events = EPOLLIN;
     ev.data.ptr = (void*)this;
     epoll_ctl(epollfd, EPOLL_CTL_DEL, fd, &ev);
     if (timer != NULL)
@@ -93,7 +96,7 @@ void requestData::seperateTimer()
 
 void requestData::handleRequest()
 {
-    //std::cout << "I am here to process request" << std::endl;
+    std::cout << "I am here to process request" << std::endl;
     char buff[MAX_BUFF];
     bool isError = false;
     while (true)
@@ -197,13 +200,17 @@ int requestData::parse_URI()
         return PARSE_URI_AGAIN;
     }
     string request_line = str.substr(0, pos);
+   // string request_line = content;
+    /*cout << request_line << endl;
     if (str.size() > pos + 1)
         str = str.substr(pos + 1);
     else 
-        str.clear();
+        str.clear();*/
     // Method
     pos = request_line.find("GET");  // Parse GET from request line
-    if (pos < 0)
+    method = METHOD_GET;
+    std::cout << "we get a GET method" << std::endl;
+    /*if (pos < 0)
     {
         pos = request_line.find("POST");
         if (pos < 0)
@@ -218,7 +225,7 @@ int requestData::parse_URI()
     else
     {
         method = METHOD_GET;
-    }
+    }*/
     pos = request_line.find("/", pos);
     if (pos < 0)
     {
@@ -226,9 +233,11 @@ int requestData::parse_URI()
     }
     else
     {
-        int _pos = request_line.find(' ', pos);
-        if (_pos < 0)
+        int _pos = request_line.find('/', pos);
+        if (_pos < 0) {
             return PARSE_URI_ERROR;
+        }
+
         else
         {
             if (_pos - pos > 1)
@@ -246,6 +255,7 @@ int requestData::parse_URI()
         }
     }
     state = STATE_ANALYSIS;
+    std::cout << "request type is: " << request_type << std::endl;
     return PARSE_URI_SUCCESS;
 }
 
@@ -259,16 +269,20 @@ int requestData::analysisRequest()
     else if (method == METHOD_GET)
     {
         char header[MAX_BUFF];
-        sprintf(header, "HTTP/1.1 %d %s\r\n", 200, "OK");
+        /*sprintf(header, "HTTP/1.1 %d %s\r\n", 200, "OK");
         sprintf(header, "%s\r\n", header);
         size_t send_len = (size_t)write(fd, header, strlen(header));
         if(send_len != strlen(header))
         {
             perror("Send header failed");
             return ANALYSIS_ERROR;
-        }
-        std::string response = "response from server";
-        send_len = write(fd, response.c_str(), response.length());
+        }*/
+        std::cout << "we are here inside GET method" << std::endl;
+        std::string response;
+        if(request_type == "Allocation")
+        response = "response from server";
+        else if(request_type == "region") response = "response from region";
+        size_t send_len = write(fd, response.c_str(), response.length());
         return ANALYSIS_SUCCESS;
     }
     else

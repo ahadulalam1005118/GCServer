@@ -80,15 +80,18 @@ int threadpool_add(threadpool_t *pool, void (*function)(void *), void *argument,
     {
         /* Are we full ? */
         if(pool->count == pool->queue_size) {
+            std::cout << "this queue error occured" << std::endl;
             err = THREADPOOL_QUEUE_FULL;
             break;
         }
         /* Are we shutting down ? */
         if(pool->shutdown) {
+            std::cout << "this shutdown error occured" << std::endl;
             err = THREADPOOL_SHUTDOWN;
             break;
         }
         /* Add task to queue */
+        std::cout << "added to taskqueue" << std::endl;
         pool->queue[pool->tail].function = function;
         pool->queue[pool->tail].argument = argument;
         pool->tail = next;

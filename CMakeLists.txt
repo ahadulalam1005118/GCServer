@@ -1,10 +1,10 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.8)
 file(GLOB server_SRC
         "*.h"
         "*.cpp"
         )
-project(GCEventServer)
+project(GCServer)
 set(CMAKE_CXX_STANDARD 11)
 
-add_executable(GCEventServer ${server_SRC})
-target_link_libraries(GCEventServer "-lpthread")
+add_executable(GCServer ${server_SRC})
+target_link_libraries(GCServer "-lpthread")
