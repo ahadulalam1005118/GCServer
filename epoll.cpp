@@ -16,7 +16,6 @@ int epoll_init()
     return epoll_fd;
 }
 
-// 注册新描述符
 int epoll_add(int epoll_fd, int fd, void *request, __uint32_t events)
 {
     std::cout << "epoll event added" << std::endl;
@@ -32,7 +31,6 @@ int epoll_add(int epoll_fd, int fd, void *request, __uint32_t events)
     return 0;
 }
 
-// 修改描述符状态
 int epoll_mod(int epoll_fd, int fd, void *request, __uint32_t events)
 {
     struct epoll_event event;
@@ -45,8 +43,6 @@ int epoll_mod(int epoll_fd, int fd, void *request, __uint32_t events)
     }
     return 0;
 }
-
-// 从epoll中删除描述符
 int epoll_del(int epoll_fd, int fd, void *request, __uint32_t events)
 {
     struct epoll_event event;
@@ -60,7 +56,6 @@ int epoll_del(int epoll_fd, int fd, void *request, __uint32_t events)
     return 0;
 }
 
-// 返回活跃事件数
 int my_epoll_wait(int epoll_fd, struct epoll_event* events, int max_events, int timeout)
 {
     int ret_count = epoll_wait(epoll_fd, events, max_events, timeout);

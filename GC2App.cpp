@@ -21,45 +21,18 @@ GC2App::GC2App(int server_port) {
     {
         this->_port = server_port;
         pthread_mutex_init(&this->lock, NULL);
-
-       /* this->_client_fd = socket(AF_INET, SOCK_STREAM, 0);
-        if(this->_client_fd < 0) {
-            std:: cout<< "error occured";
-        }
-        struct hostent *server;
-        server = gethostbyname("localhost");
-        sockaddr_in listen_addr;
-        memset(&listen_addr, 0, sizeof(listen_addr));
-        listen_addr.sin_family = AF_INET;
-        listen_addr.sin_addr.s_addr = ((struct in_addr*)(server->h_addr))->s_addr;
-        listen_addr.sin_port = htons(client_port);
-        if(connect(this->_client_fd, (struct sockaddr*)&listen_addr, sizeof(listen_addr)) != 0)
-        {
-            std::cout << "error occured";
-        }
-        this->stream = new NetStream(this->_client_fd);
-        __uint32_t event = EPOLLIN | EPOLLET;
-        requestData *req = new requestData();
-        req->setFd(this->_client_fd);
-        epoll_add(this->_epoll_fd, this->_client_fd, static_cast<void*>(req), event );
-*/
-
     }
 }
 
 int GC2App::socket_bind_listen(int port) {
     if (port < 1024 || port > 65535)
         return -1;
-
-    // 创建socket(IPv4 + TCP)，返回监听描述符
     int listen_fd = 0;
     if((listen_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
         return -1;
     int optval = 1;
     if(setsockopt(listen_fd, SOL_SOCKET,  SO_REUSEADDR, &optval, sizeof(optval)) == -1)
         return -1;
-
-    // 设置服务器IP和Port，和监听描述副绑定
     struct sockaddr_in server_addr;
     bzero((char*)&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
@@ -67,12 +40,8 @@ int GC2App::socket_bind_listen(int port) {
     server_addr.sin_port = htons((unsigned short)port);
     if(bind(listen_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
         return -1;
-
-    // 开始监听，最大等待队列长为LISTENQ
     if(listen(listen_fd, LISTENQ) == -1)
         return -1;
-
-    // 无效监听描述符
     if(listen_fd == -1)
     {
         close(listen_fd);
@@ -103,7 +72,7 @@ void GC2App::handle_events(int epoll_fd, int listen_fd, struct epoll_event *even
         //int fd = events[i].data.fd;
         if(fd == listen_fd)
         {
-            std::cout << "connection acceptance request" << std::endl;
+            std::cout << "connection acceptance request" << std::endl << std::endl << std::endl;
             this->accept_connection(listen_fd, epoll_fd);
         }
         else
@@ -165,12 +134,9 @@ void GC2App::handle_for_sigpipe() {
 
 void GC2App::server_run() {
     this->_epoll_fd = epoll_init();
-    //std::cout << this->_epoll_fd << std::endl;
-    //int epoll_fd =
     if (this->_epoll_fd < 0)
     {
         perror("epoll init failed");
-        // return 1;
     }
     this->_listen_fd = this->socket_bind_listen(this->_port);
     this->set_socket_nonblocking(_listen_fd);

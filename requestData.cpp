@@ -128,7 +128,7 @@ void requestData::handleRequest()
 
         if (state == STATE_PARSE_URI)
         {
-            int flag = this->parse_URI();
+            int flag = parse_URI();
             if (flag == PARSE_URI_AGAIN)
             {
                 break;
@@ -169,8 +169,13 @@ void requestData::handleRequest()
     }
     if (state == STATE_FINISH)
     {
-        delete this;
-        return;
+        state = STATE_PARSE_URI;
+        this->content = "";
+        timer = NULL;
+        now_read_pos = 0;
+        againTimes = 0;
+
+        //return;
     }
     mytimer *mtimer = new mytimer(this, 500);
     timer = mtimer;
@@ -184,7 +189,6 @@ void requestData::handleRequest()
     int ret = epoll_mod(epollfd, fd, static_cast<void*>(this), _epo_event);
     if (ret < 0)
     {
-        // 返回错误处理
         delete this;
         return;
     }
@@ -193,47 +197,27 @@ void requestData::handleRequest()
 int requestData::parse_URI()
 {
     string &str = content;
-    cout << content << endl;
+    cout << "now content is:" <<  content << endl;
     int pos = str.find('\r', now_read_pos); // It was default set to 0
     if (pos < 0)
     {
         return PARSE_URI_AGAIN;
     }
-    string request_line = str.substr(0, pos);
-   // string request_line = content;
-    /*cout << request_line << endl;
-    if (str.size() > pos + 1)
-        str = str.substr(pos + 1);
-    else 
-        str.clear();*/
-    // Method
+    string request_line = content.substr(0, pos);
     pos = request_line.find("GET");  // Parse GET from request line
     method = METHOD_GET;
     std::cout << "we get a GET method" << std::endl;
-    /*if (pos < 0)
-    {
-        pos = request_line.find("POST");
-        if (pos < 0)
-        {
-            return PARSE_URI_ERROR;
-        }
-        else
-        {
-            method = METHOD_POST;
-        }
-    }
-    else
-    {
-        method = METHOD_GET;
-    }*/
-    pos = request_line.find("/", pos);
+    std::cout << "now request line is: " << request_line << std::endl;
+    pos = request_line.find("/", 0);
+    cout << "here one pos is " << pos << std::endl;
     if (pos < 0)
     {
         return PARSE_URI_ERROR;
     }
     else
     {
-        int _pos = request_line.find('/', pos);
+        int _pos = request_line.find('/', pos+1);
+        cout << "here pos is " << _pos << std::endl;
         if (_pos < 0) {
             return PARSE_URI_ERROR;
         }
@@ -243,6 +227,7 @@ int requestData::parse_URI()
             if (_pos - pos > 1)
             {
                 request_type = request_line.substr(pos + 1, _pos - pos - 1);
+                std::cout << "request type is " << request_type << std::endl;
                 int __pos = request_type.find('?');
                 if (__pos >= 0)
                 {
@@ -269,35 +254,25 @@ int requestData::analysisRequest()
     else if (method == METHOD_GET)
     {
         char header[MAX_BUFF];
-        /*sprintf(header, "HTTP/1.1 %d %s\r\n", 200, "OK");
-        sprintf(header, "%s\r\n", header);
-        size_t send_len = (size_t)write(fd, header, strlen(header));
-        if(send_len != strlen(header))
-        {
-            perror("Send header failed");
-            return ANALYSIS_ERROR;
-        }*/
         std::cout << "we are here inside GET method" << std::endl;
         std::string response;
         if(request_type == "Allocation")
-        response = "response from server";
-        else if(request_type == "region") response = "response from region";
-        size_t send_len = write(fd, response.c_str(), response.length());
+        response = "response from Allocation";    //here the allocation info comes from GC
+        else if(request_type == "Region") response = "response from region";
+        else if(request_type == "Other") response = "response from Other";
+        size_t send_len = write(fd, response.c_str(), response.length()); // here the region info comes from GC
         return ANALYSIS_SUCCESS;
     }
     else
         return ANALYSIS_ERROR;
-        //return ANALYSIS_SUCCESS;
 }
 
 
 
 mytimer::mytimer(requestData *_request_data, int timeout): deleted(false), request_data(_request_data)
 {
-    //cout << "mytimer()" << endl;
     struct timeval now;
     gettimeofday(&now, NULL);
-    // 以毫秒计
     expired_time = ((now.tv_sec * 1000) + (now.tv_usec / 1000)) + timeout;
 }
 

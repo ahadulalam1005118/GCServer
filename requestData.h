@@ -47,7 +47,6 @@ private:
     int againTimes;
     int fd;
     int epollfd;
-    // content的内容用完就清
     std::string content;
     int method;
     std::string request_type;
